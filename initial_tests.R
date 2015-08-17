@@ -30,7 +30,7 @@ check_biases <- function(){
   }
 
   # Read in hypothesis data and control data and compare.
-  hyp_data <- get_data("TestSearchSatisfaction_12423691", "WHERE LEFT(timestamp,8) >= 20150723")
+  hyp_data <- get_data("TestSearchSatisfaction_12423691", "WHERE LEFT(timestamp,8) >= 20150804")
   control_data <- get_data("Search_12057910", paste("WHERE timestamp BETWEEN", wmf::to_mediawiki(min(hyp_data$timestamp)),
                                                     "AND", wmf::to_mediawiki(max(hyp_data$timestamp))))
 
