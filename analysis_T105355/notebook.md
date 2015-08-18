@@ -96,11 +96,11 @@ Controls   Hypothesis
 
 
 
-16122 visits to pages from 94751 search result pages (17.015%) under Schema:TestSearchSatisfaction
+16122 visits to pages from 94751 search result pages (17.015%) under [Schema:TestSearchSatisfaction](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction)
 
 
 
-20682 visits to pages from 224976 search result pages (9.193%) under Schema:Search
+20682 visits to pages from 224976 search result pages (9.193%) under [Schema:Search](https://meta.wikimedia.org/wiki/Schema:Search)
 
 
 
