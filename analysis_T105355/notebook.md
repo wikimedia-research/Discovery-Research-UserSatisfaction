@@ -89,3 +89,24 @@ Controls   Hypothesis
 ![](notebook_files/figure-html/unnamed-chunk-8-1.png) 
 
 ![](notebook_files/figure-html/unnamed-chunk-9-1.png) 
+
+## Analysis
+
+![](notebook_files/figure-html/unnamed-chunk-10-1.png) 
+
+
+
+16122 visits to pages from 94751 search result pages (17.015%) under Schema:TestSearchSatisfaction
+
+
+
+20682 visits to pages from 224976 search result pages (9.193%) under Schema:Search
+
+
+
+2-sample test for equality of proportions (17.015% vs 9.193%): p < 0.001
+
+95% CI for difference of proportions: (-8.1%, -7.6%)
+
+### 
+
