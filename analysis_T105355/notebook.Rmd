@@ -328,5 +328,54 @@ prop.test(c(20682, 16122), n = c(224976, 94751), correct = FALSE)
 
 95% CI for difference of proportions: (-8.1%, -7.6%)
 
-### 
+<p style="color: orange; font-size: large;">These are without taking into account a user opening multiple tabs from the search results page.</p>
 
+### Time spent on pages
+
+```{r}
+hyp_pageVisitTimes <- hyp_data %>%
+  keep_where((event_action == "visitPage" & event_depth == 1) | event_action == "leavePage") %>%
+  arrange(event_searchSessionId) %>%
+  group_by(event_pageId) %>%
+  summarise(n = n()) %>%
+  keep_where(n == 2) %>%
+  select(event_pageId) %>%
+  left_join(hyp_data, by = "event_pageId") %>%
+  select(c(event_pageId, event_action, timestamp, device, os, browser, event_searchSessionId)) %>%
+  mutate(timestamp = as.character(timestamp)) %>%
+  arrange(event_pageId, desc(event_action)) %>%
+  { .[!duplicated(.[, c('event_pageId','event_action')]), ] } %>%
+  tidyr::spread(event_action, timestamp) %>%
+  mutate(leavePage = lubridate::ymd_hms(leavePage),
+         visitPage = lubridate::ymd_hms(visitPage))
+```
+
+Note that some **leavePage** events may be duplicated:
+
+|event_pageId     |event_action |timestamp           |device |os          |browser |event_searchSessionId |
+|:----------------|:------------|:-------------------|:------|:-----------|:-------|:---------------------|
+|1910fc0a7b166ebb |leavePage    |2015-08-09 12:24:09 |Other  |Windows 7   |Chrome  |52d5a92c39058011      |
+|1910fc0a7b166ebb |leavePage    |2015-08-09 12:24:12 |Other  |Windows 7   |Chrome  |52d5a92c39058011      |
+|88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:02 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
+|88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:09 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
+
+```{r, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
+p <- hyp_pageVisitTimes %>%
+  mutate(timeSpent = as.numeric(difftime(leavePage, visitPage, units = "mins")))  %>% # secs, mins, hours
+  keep_where(timeSpent <= quantile(timeSpent, 0.95)) %>%
+  ggplot(data = ., aes(x = timeSpent)) +
+  geom_histogram() + # aes(y = ..density..)
+  scale_fill_discrete(name = "Type of user") +
+  scale_y_continuous(breaks = NULL) +
+  ggtitle("Time spent (in minutes) by test schema users on depth 1 pages\n(sans top 5%)") +
+  theme_fivethirtyeight()
+  # scale_x_log10(name = "Seconds") +
+  # annotation_logticks(side = "b")
+(p)
+```
+
+```{r, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
+p + scale_x_continuous(limits = c(0, 4), breaks = seq(0, 4, length.out = 25), labels = seq(0, 4*60, 10)) +
+  ggtitle("Time spent (in seconds) by test schema users on depth 1 pages\n(cropped to 4 minutes maximum)") +
+  geom_vline(xintercept = 1:4, linetype = "longdash")
+```

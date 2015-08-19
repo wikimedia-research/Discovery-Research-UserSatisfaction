@@ -108,5 +108,38 @@ Controls   Hypothesis
 
 95% CI for difference of proportions: (-8.1%, -7.6%)
 
-### 
+<p style="color: orange; font-size: large;">These are without taking into account a user opening multiple tabs from the search results page.</p>
 
+### Time spent on pages
+
+
+```r
+hyp_pageVisitTimes <- hyp_data %>%
+  keep_where((event_action == "visitPage" & event_depth == 1) | event_action == "leavePage") %>%
+  arrange(event_searchSessionId) %>%
+  group_by(event_pageId) %>%
+  summarise(n = n()) %>%
+  keep_where(n == 2) %>%
+  select(event_pageId) %>%
+  left_join(hyp_data, by = "event_pageId") %>%
+  select(c(event_pageId, event_action, timestamp, device, os, browser, event_searchSessionId)) %>%
+  mutate(timestamp = as.character(timestamp)) %>%
+  arrange(event_pageId, desc(event_action)) %>%
+  { .[!duplicated(.[, c('event_pageId','event_action')]), ] } %>%
+  tidyr::spread(event_action, timestamp) %>%
+  mutate(leavePage = lubridate::ymd_hms(leavePage),
+         visitPage = lubridate::ymd_hms(visitPage))
+```
+
+Note that some **leavePage** events may be duplicated:
+
+|event_pageId     |event_action |timestamp           |device |os          |browser |event_searchSessionId |
+|:----------------|:------------|:-------------------|:------|:-----------|:-------|:---------------------|
+|1910fc0a7b166ebb |leavePage    |2015-08-09 12:24:09 |Other  |Windows 7   |Chrome  |52d5a92c39058011      |
+|1910fc0a7b166ebb |leavePage    |2015-08-09 12:24:12 |Other  |Windows 7   |Chrome  |52d5a92c39058011      |
+|88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:02 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
+|88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:09 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
+
+![](notebook_files/figure-html/unnamed-chunk-15-1.png) 
+
+![](notebook_files/figure-html/unnamed-chunk-16-1.png) 
