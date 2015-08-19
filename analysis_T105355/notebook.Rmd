@@ -274,7 +274,7 @@ both %>%
             size = 3) +
   labs(title = "OS and Browser usage, User Satisfaction schema Vs. control (Non-Spiders)")
 # ggsave(p, file = "os_by_browser.pdf", height = 10, width = 7.5, units = "in", scale = 2)
-rm(p)
+
 ```
 
 ## Analysis
@@ -378,4 +378,32 @@ p <- hyp_pageVisitTimes %>%
 p + scale_x_continuous(limits = c(0, 4), breaks = seq(0, 4, length.out = 25), labels = seq(0, 4*60, 10)) +
   ggtitle("Time spent (in seconds) by test schema users on depth 1 pages\n(cropped to 4 minutes maximum)") +
   geom_vline(xintercept = 1:4, linetype = "longdash")
+```
+
+When we look at the quantiles:
+
+```{r, echo = FALSE, results = 'asis'}
+hyp_pageVisitTimes %>%
+  mutate(timeSpent = as.numeric(difftime(leavePage, visitPage, units = "secs"))) %>%
+  with({
+    quantile(timeSpent, seq(0, 0.95, 0.05))
+  }) %>%
+  as.data.frame %>%
+  { colnames(.) <- c("Seconds"); . } %>%
+  kable(digits = 0)
+  # with({
+  #   ecdf(timeSpent)
+  # }) %>%
+  # plot
+```
+
+For example, if we were to set a check-in at 10s, we would have lost 25% of the users.
+
+We may be able to find out some intelligent way of saying "okay, given that this user with these particular characteristics has been on the page for 20s, what's the probability they're going to be on the page for 30?" and if that probability is low on average, then we don't need to have a check-in at 30s because that's not as useful to us as we originally would have thought.
+
+#### Survival Analysis...
+
+```{r, eval = FALSE}
+survival::Surv()
+survival::survfit()
 ```

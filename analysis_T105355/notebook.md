@@ -143,3 +143,41 @@ Note that some **leavePage** events may be duplicated:
 ![](notebook_files/figure-html/unnamed-chunk-15-1.png) 
 
 ![](notebook_files/figure-html/unnamed-chunk-16-1.png) 
+
+When we look at the quantiles:
+
+
+       Seconds
+----  --------
+0%           0
+5%           2
+10%          3
+15%          5
+20%          6
+25%          9
+30%         12
+35%         16
+40%         20
+45%         26
+50%         34
+55%         44
+60%         57
+65%         75
+70%        102
+75%        144
+80%        212
+85%        363
+90%        736
+95%       2237
+
+For example, if we were to set a check-in at 10s, we would have lost 25% of the users.
+
+We may be able to find out some intelligent way of saying "okay, given that this user with these particular characteristics has been on the page for 20s, what's the probability they're going to be on the page for 30?" and if that probability is low on average, then we don't need to have a check-in at 30s because that's not as useful to us as we originally would have thought.
+
+#### Survival Analysis...
+
+
+```r
+survival::Surv()
+survival::survfit()
+```
