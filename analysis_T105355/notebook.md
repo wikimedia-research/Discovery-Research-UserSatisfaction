@@ -146,29 +146,7 @@ Note that some **leavePage** events may be duplicated:
 
 When we look at the quantiles:
 
-
-       Seconds
-----  --------
-0%           0
-5%           2
-10%          3
-15%          5
-20%          6
-25%          9
-30%         12
-35%         16
-40%         20
-45%         26
-50%         34
-55%         44
-60%         57
-65%         75
-70%        102
-75%        144
-80%        212
-85%        363
-90%        736
-95%       2237
+![](notebook_files/figure-html/unnamed-chunk-17-1.png) 
 
 For example, if we were to set a check-in at 10s, we would have lost 25% of the users.
 

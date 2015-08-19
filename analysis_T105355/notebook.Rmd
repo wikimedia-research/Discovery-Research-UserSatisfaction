@@ -382,19 +382,22 @@ p + scale_x_continuous(limits = c(0, 4), breaks = seq(0, 4, length.out = 25), la
 
 When we look at the quantiles:
 
-```{r, echo = FALSE, results = 'asis'}
+```{r, fig.width = 10, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE}
 hyp_pageVisitTimes %>%
   mutate(timeSpent = as.numeric(difftime(leavePage, visitPage, units = "secs"))) %>%
   with({
-    quantile(timeSpent, seq(0, 0.95, 0.05))
+    x <- quantile(timeSpent, seq(0, 0.95, 0.05))
+    y <- as.numeric(sub("%", "", names(x)))/100
+    data.frame(cutoff = x, quantile = y)
   }) %>%
-  as.data.frame %>%
-  { colnames(.) <- c("Seconds"); . } %>%
-  kable(digits = 0)
-  # with({
-  #   ecdf(timeSpent)
-  # }) %>%
-  # plot
+  ggplot(data = ., aes(x = cutoff, y = quantile)) +
+  # geom_point() +
+  geom_line() +
+  theme_fivethirtyeight() +
+  geom_text(aes(label = cutoff), position = position_dodge(height = 0.9)) +
+  scale_y_reverse(breaks = seq(0, 1, 0.05), labels = scales::percent) +
+  scale_x_continuous(limits = c(0, 220), breaks = seq(0, 220, 10)) +
+  ggtitle("Cut-off time for check-ins (in seconds) vs quantile")
 ```
 
 For example, if we were to set a check-in at 10s, we would have lost 25% of the users.
