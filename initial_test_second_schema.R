@@ -38,7 +38,6 @@ check_biases <- function(){
   control_agents <- handle_uas(control_data, "Control Sample")
   final_set <- rbind(hyp_agents[hyp_agents$agent %in% control_agents$agent[1:10],],
                      control_agents[1:10,])
-  )
 
   ggsave(plot = ggplot(final_set, aes(x = reorder(agent, percentage), y = percentage, fill = factor(sample))) +
            geom_bar(stat="identity", position = "dodge") +
