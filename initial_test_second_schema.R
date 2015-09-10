@@ -41,10 +41,53 @@ check_biases <- function(){
 
   ggsave(plot = ggplot(final_set, aes(x = reorder(agent, percentage), y = percentage, fill = factor(sample))) +
            geom_bar(stat="identity", position = "dodge") +
-           theme_fivethirtyeight() + scale_x_discrete() + scale_y_continuous(labels=percent) +
-           labs(title = "Browser usage, second User Satisfaction schema versus control", fill = "Sample") + coord_flip(),
+           theme_fivethirtynine() + scale_x_discrete() + scale_y_continuous(labels=percent) +
+           labs(title = "Browser usage, second User Satisfaction schema versus control",
+                x = "Browser", y = "Percentage of users", fill = "Sample") + coord_flip(),
          file = "second_ua_data.png")
 
   #Return
   return(hyp_data)
+}
+
+checkins_and_reconstruction <- function(hyp_data){
+
+  ggsave(plot = ggplot(hyp_data[!is.na(hyp_data$event_checkin),], aes(x = event_checkin)) +
+           geom_density(fill="#00BFC4") + theme_fivethirtyeight() +
+           labs(title = "Browser checkin density in the second user satisfaction schema"),
+         file = "second_checkin_density.png")
+
+  # Session reconstruction attempt
+  hyp_data$timestamp <- to_seconds(x = hyp_data$timestamp, format = "null") # Format isn't necessary
+  session_dataset <- hyp_data[hyp_data$event_action %in% c("searchResultPage","visitPage"),]
+  events_by_user <- split(session_dataset$timestamp, paste0(session_dataset$clientIp, session_dataset$userAgent))
+  results <- generate_intertimes(events_by_user)
+  ggsave(plot = ggplot(as.data.frame(results), aes(results)) + geom_density(fill="#00BFC4") +
+           theme_fivethirtynine() +
+           labs(title = "Intertimes between events, user ID",
+                x = "Intertime (seconds)",
+                y = "Density"),
+         file = "per_user_intertime_density.png")
+  ggsave(plot = ggplot(as.data.frame(results), aes(results)) + geom_density(fill="#00BFC4") +
+           theme_fivethirtynine() +
+           labs(title = "Intertimes between events, user ID",
+                x = "Intertime (seconds)",
+                y = "Density") +
+           scale_x_log10(),
+         file = "per_user_intertime_density_log.png")
+
+  events_by_session <- split(session_dataset$timestamp, session_dataset$event_searchSessionId)
+  results <- generate_intertimes(events_by_user)
+  ggsave(plot = ggplot(as.data.frame(results), aes(results)) + geom_density(fill="#00BFC4") +
+           theme_fivethirtynine() +
+           labs(title = "Intertimes between events, session ID",
+                x = "Intertime (seconds)",
+                y = "Density"),
+         file = "per_session_intertime_density.png")
+  ggsave(plot = ggplot(as.data.frame(results), aes(results)) + geom_density(fill="#00BFC4") +
+           theme_fivethirtynine() + labs(title = "Intertimes between events, session ID",
+                                          x = "Intertime (seconds)",
+                                          y = "Density") +
+           scale_x_log10(),
+         file = "per_session_intertime_density_log.png")
 }

@@ -48,8 +48,9 @@ check_biases <- function(){
 
   ggsave(plot = ggplot(final_set, aes(x = reorder(agent, percentage), y = percentage, fill = factor(sample))) +
            geom_bar(stat="identity", position = "dodge") +
-           theme_fivethirtyeight() + scale_x_discrete() + scale_y_continuous(labels=percent) +
-           labs(title = "Browser usage, User Satisfaction schema versus control") + coord_flip(),
+           theme_fivethirtynine() + scale_x_discrete() + scale_y_continuous(labels=percent) +
+           labs(title = "Browser usage, User Satisfaction schema versus control",
+                x = "Browser", y = "Percentage of users", fill = "Sample") + coord_flip(),
          file = "ua_data.png")
 
   #Return

@@ -11,6 +11,7 @@ library(ggplot2)
 library(ggthemes) # install.packages('ggthemes', dependencies = TRUE)
 library(scales)
 library(reconstructr) # devtools::install_github("ironholds/reconstructr")
-
+library(Rcpp)
+sourceCpp("intertimes.cpp")
 #$.jStorage.set( 'searchSessionId', mw.user.generateRandomSessionId(), { TTL: 600000 })
 #de558af8fd073ecb
