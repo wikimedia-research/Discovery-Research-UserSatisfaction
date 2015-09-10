@@ -1,0 +1,412 @@
+---
+title: "Initial analysis of the TestSearchSatisfaction data to validate that the theory
+  works"
+author: "Mikhail Popov"
+date: "August 17, 2015"
+output:
+  html_document:
+    keep_md: yes
+    theme: readable
+    toc: yes
+---
+
+ This analysis is meant to address the Phabricator task [T105355](https://phabricator.wikimedia.org/T105355).
+
+## Prerequisities
+
+This notebook uses the following packages: magrittr, tidyr, dplyr, knitr, ggplot2, ggthemes, scales, and printr.
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+c("magrittr", "tidyr", "knitr", "ggplot2", "ggthemes", "printr") %>%
+  sapply(library, character.only = TRUE) %>% invisible
+import::from(dplyr, select, arrange, desc,
+                    tbl_df, rename, mutate,
+                    left_join, right_join, inner_join, bind_rows, bind_cols,
+                    summarise, group_by, ungroup, keep_where = filter)
+```
+
+## Data Preparation
+
+Oliver Keyes prepared the data for analysis (read it in, cleaned up timestamps, and parsed user agents).
+
+```{r, echo = FALSE, eval = FALSE}
+setwd('analysis_T105355')
+load('second_ab_run.RData')
+ls()
+control_agents %<>% tbl_df
+control_data %<>% tbl_df
+hyp_agents %<>% tbl_df
+hyp_data %<>% tbl_df
+
+library(uaparser)
+hyp_parsedUserAgent <- parse_agents(hyp_data$userAgent)
+hyp_data <- dplyr::bind_cols(hyp_data, hyp_parsedUserAgent)
+control_parsedUserAgent <- parse_agents(control_data$userAgent)
+control_data <- dplyr::bind_cols(control_data, control_parsedUserAgent)
+rm(hyp_parsedUserAgent, control_parsedUserAgent)
+
+hyp_data$timestamp <- as.POSIXct(hyp_data$timestamp)
+control_data$timestamp <- as.POSIXct(control_data$timestamp)
+
+save.image('second_ab_run_tbl-df.RData')
+```
+
+```{r}
+# setwd('analysis_T105355')
+load('second_ab_run_tbl-df.RData')
+```
+
+## Notes to self
+
+### control_data
+
+|control_data               |comment                          |
+|:--------------------------|:--------------------------------|
+|uuid                       |Unique user ID
+|clientIp                   ||
+|timestamp                  ||
+|userAgent                  ||
+|webHost                    ||
+|wiki                       ||
+|event_action               ||
+|event_clickIndex           ||
+|event_numberOfResults      ||
+|event_platform             ||
+|event_resultSetType        ||
+|event_searchSessionToken   ||
+|event_timeOffsetSinceStart ||
+|event_timeToDisplayResults ||
+|event_userSessionToken     ||
+
+### hyp_data (hypothesis data)
+
+|column name           | comment                      |
+|:---------------------|:-----------------------------|
+|uuid                  ||
+|clientIp              ||
+|timestamp             ||
+|userAgent             ||
+|webHost               ||
+|wiki                  ||
+|event_action          | Identifies the context in which the event was created. When the user clicks a link in the results a visitPage event is created. |
+|event_depth           | Records how many clicks away from the search page the user currently is. |
+|event_logId           | A unique identifier generated per event. |
+|event_pageId          | A unique identifier generated per visited page. This allows a visitPage event to be correlated with a leavePage event. |
+|event_searchSessionId | A unique identifier generated per search session. |
+|device                     ||
+|os                         ||
+|os_major                   ||
+|os_minor                   ||
+|os_patch                   ||
+|os_patch_minor             ||
+|browser                    ||
+|browser_major              ||
+|browser_minor              ||
+|browser_patch              ||
+|browser_patch_minor        ||
+
+## Bias Checking
+
+```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+final_set <- rbind(hyp_agents[hyp_agents$agent %in% control_agents$agent[1:10],],
+                   control_agents[1:10,],
+                   data.frame(agent = control_agents$agent[1:10][!control_agents$agent[1:10] %in% hyp_agents$agent],
+                              Freq = 0,
+                              percentage = 0,
+                              sample = "User Satisfaction Schema",
+                              stringsAsFactors = FALSE))
+ggplot(data = final_set,
+       aes(x = reorder(agent, percentage),
+           y = percentage,
+           fill = factor(sample))) +
+  geom_bar(stat="identity", position = "dodge") +
+  theme_fivethirtyeight() +
+  scale_x_discrete("User Agent") +
+  scale_fill_discrete("Sample") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  geom_text(aes(label = sprintf("%.2f%%", 100 * percentage)),
+            position = position_dodge(width = 1),
+            size = 3) +
+  labs(title = "Browser usage, User Satisfaction schema versus control")
+# ggsave(p, file = "browser.png", height = 6, width = 6, units = "in", dpi = 300, scale = 1.5)
+rm(final_set)
+```
+
+Let's take a look at proportions of (known) spiders in our datasets...
+
+```{r, echo = FALSE, results = 'asis'}
+cbind(Controls = sprintf("%.3f%%",
+                         100*sum(control_data$device == "Spider")/nrow(control_data)),
+      Hypothesis = sprintf("%.3f%%",
+                           100*sum(hyp_data$device == "Spider")/nrow(hyp_data))) %>%
+  kable
+```
+
+```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+#Parse agents and identify mobile/desktop/common patterns
+handle_uas <- function(dataset, name){
+  #Deduplicate
+  dataset <- dataset[!duplicated(dataset[,c("clientIp", "userAgent")]), ]
+  
+  results <- paste(dataset$browser, dataset$browser_major) %>%
+    table %>%
+    as.data.frame(stringsAsFactors = FALSE)
+  results$percentage <- results$Freq/sum(results$Freq)
+  results <- results[order(results$percentage, decreasing = TRUE),]
+  names(results)[1] <- "agent"
+  results$sample <- name
+  
+  results_2 <- dataset$os %>% table %>%
+    as.data.frame(stringsAsFactors = FALSE)
+  results_2$percentage <- results_2$Freq/sum(results$Freq)
+  results_2 <- results_2[order(results_2$percentage, decreasing = TRUE),]
+  names(results_2)[1] <- "os"
+  results_2$sample <- name
+  
+  results_3 <- paste(dataset$os, ":", dataset$browser, dataset$browser_major) %>%
+    table %>%
+    as.data.frame(stringsAsFactors = FALSE)
+  results_3$percentage <- results_3$Freq/sum(results_3$Freq)
+  results_3 <- results_3[order(results_3$percentage, decreasing = TRUE),]
+  names(results_3)[1] <- "os_agent"
+  results_3$sample <- name
+  
+  return(list(browser = results, os = results_2, both = results_3))
+}
+
+hyp_agents_nonauto <- hyp_data %>%
+  keep_where(device != "Spider") %>%
+  handle_uas("User Satisfaction Schema")
+
+control_agents_nonauto <- control_data %>%
+  keep_where(device != "Spider") %>%
+  handle_uas("Control Sample")
+```
+
+```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+browsers <- bind_rows(control_agents_nonauto$browser, hyp_agents_nonauto$browser)
+browsers %>%
+  group_by(agent) %>%
+  summarise(TotalFreq = sum(Freq)) %>%
+  dplyr::top_n(10, TotalFreq) %>%
+  select(-TotalFreq) %>%
+  left_join(browsers) %>%
+  ggplot(data = .,
+         aes(x = reorder(agent, percentage),
+             y = percentage,
+             fill = factor(sample))) +
+  geom_bar(stat="identity", position = "dodge") +
+  theme_fivethirtyeight() +
+  scale_x_discrete("User Agent") +
+  scale_fill_discrete("Sample") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  geom_text(aes(label = sprintf("%.2f%%", 100 * percentage)),
+            position = position_dodge(width = 1),
+            size = 3) +
+  labs(title = "Browser usage, User Satisfaction schema versus control\n(Non-Spiders)")
+# ggsave(p, file = "browser_nonauto.png", height = 6, width = 6, units = "in", dpi = 300, scale = 1.5)
+rm(browsers)
+```
+
+```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+oses <- bind_rows(control_agents_nonauto$os, hyp_agents_nonauto$os)
+oses %>%
+  group_by(os) %>%
+  summarise(TotalFreq = sum(Freq)) %>%
+  dplyr::top_n(10, TotalFreq) %>%
+  select(-TotalFreq) %>%
+  left_join(oses) %>%
+  ggplot(data = .,
+         aes(x = reorder(os, percentage),
+             y = percentage,
+             fill = factor(sample))) +
+  geom_bar(stat="identity", position = "dodge") +
+  theme_fivethirtyeight() +
+  scale_x_discrete("Operating System") +
+  scale_fill_discrete("Sample") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  geom_text(aes(label = sprintf("%.2f%%", 100 * percentage)),
+            position = position_dodge(width = 1),
+            size = 3) +
+  labs(title = "OS usage, User Satisfaction schema versus control\n(Non-Spiders)")
+# ggsave(p, file = "systems_nonauto.png", height = 6, width = 6, units = "in", dpi = 300, scale = 1.5)
+rm(oses)
+```
+
+```{r, fig.width = 10, fig.height = 10, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+both <- bind_rows(control_agents_nonauto$both, hyp_agents_nonauto$both) %>%
+  separate(os_agent, c("os", "agent"),sep = " : ", remove = FALSE)
+
+top_browsers <- both %>%
+  group_by(agent) %>%
+  summarise(TotalFreq = sum(Freq)) %>%
+  dplyr::top_n(10, TotalFreq) %>%
+  select(-TotalFreq) %>%
+  unlist
+
+top_systems <- both %>%
+  group_by(os) %>%
+  summarise(TotalFreq = sum(Freq)) %>%
+  dplyr::top_n(10, TotalFreq) %>%
+  select(-TotalFreq) %>%
+  unlist
+
+both %>%
+  keep_where(os %in% top_systems & agent %in% top_browsers) %>%
+  ggplot(data = .,
+         aes(x = sample,
+             y = percentage,
+             fill = factor(sample))) +
+  facet_grid(os ~ agent) +
+  geom_bar(stat="identity", position = "dodge") +
+  theme_bw() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  # theme_fivethirtyeight() +
+  scale_x_discrete(breaks = NULL) +
+  scale_fill_discrete("Sample") +
+  scale_y_continuous(breaks = NULL) +
+  geom_text(aes(label = sprintf("%.2f%%", 100 * percentage)),
+            position = position_dodge(width = 1),
+            size = 3) +
+  labs(title = "OS and Browser usage, User Satisfaction schema Vs. control (Non-Spiders)")
+# ggsave(p, file = "os_by_browser.pdf", height = 10, width = 7.5, units = "in", scale = 2)
+
+```
+
+## Analysis
+
+```{r, echo = FALSE}
+hyp_data %>%
+  keep_where(event_action == "visitPage" & event_depth == 1) %>% # they visited one of the search results
+  with(., {
+    table(event_searchSessionId)
+  }) %>%
+  table %>%
+  barplot(main = "Number of page visits from a search\nresult page in a single session",
+          xlab = "Number of page visits (from search results) in a session",
+          ylab = "Number of sessions",
+          ylim = c(0, 1.5e3), col = "cornflowerblue", border = "white")
+```
+
+```{r, echo = FALSE, eval = FALSE}
+hyp_data %>%
+  keep_where(event_action == "searchEngineResultPage" | (event_action == "visitPage" & event_depth == 1)) %>%
+  group_by(event_action) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>% # puts searchEngineResultPage at the top
+  summarise(prop = (function(x){
+    sprintf("%.0f visits to pages from %.0f search result pages (%.3f%%) under Schema:TestSearchSatisfaction",
+            x[2], x[1], 100*x[2]/x[1])
+  })(n)) %>% unlist %>% unname
+```
+
+16122 visits to pages from 94751 search result pages (17.015%) under [Schema:TestSearchSatisfaction](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction)
+
+```{r, echo = FALSE, eval = FALSE}
+control_data %>%
+  keep_where(event_action == "impression-results" | event_action == "click-result" ) %>%
+  group_by(event_action) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>% # puts impression-results at the top
+  summarise(prop = (function(x){
+    sprintf("%.0f visits to pages from %.0f search result pages (%.3f%%) under Schema:Search",
+            x[2], x[1], 100*x[2]/x[1])
+  })(n)) %>% unlist %>% unname
+```
+
+20682 visits to pages from 224976 search result pages (9.193%) under [Schema:Search](https://meta.wikimedia.org/wiki/Schema:Search)
+
+```{r, echo = FALSE, eval = FALSE}
+prop.test(c(20682, 16122), n = c(224976, 94751), correct = FALSE)
+```
+
+2-sample test for equality of proportions (17.015% vs 9.193%): p < 0.001
+
+95% CI for difference of proportions: (-8.1%, -7.6%)
+
+<p style="color: orange; font-size: large;">These are without taking into account a user opening multiple tabs from the search results page.</p>
+
+### Time spent on pages
+
+```{r}
+hyp_pageVisitTimes <- hyp_data %>%
+  keep_where((event_action == "visitPage" & event_depth == 1) | event_action == "leavePage") %>%
+  arrange(event_searchSessionId) %>%
+  group_by(event_pageId) %>%
+  summarise(n = n()) %>%
+  keep_where(n == 2) %>%
+  select(event_pageId) %>%
+  left_join(hyp_data, by = "event_pageId") %>%
+  select(c(event_pageId, event_action, timestamp, device, os, browser, event_searchSessionId)) %>%
+  mutate(timestamp = as.character(timestamp)) %>%
+  arrange(event_pageId, desc(event_action)) %>%
+  { .[!duplicated(.[, c('event_pageId','event_action')]), ] } %>%
+  tidyr::spread(event_action, timestamp) %>%
+  mutate(leavePage = lubridate::ymd_hms(leavePage),
+         visitPage = lubridate::ymd_hms(visitPage))
+```
+
+Note that some **leavePage** events may be duplicated:
+
+|event_pageId     |event_action |timestamp           |device |os          |browser |event_searchSessionId |
+|:----------------|:------------|:-------------------|:------|:-----------|:-------|:---------------------|
+|1910fc0a7b166ebb |leavePage    |2015-08-09 12:24:09 |Other  |Windows 7   |Chrome  |52d5a92c39058011      |
+|1910fc0a7b166ebb |leavePage    |2015-08-09 12:24:12 |Other  |Windows 7   |Chrome  |52d5a92c39058011      |
+|88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:02 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
+|88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:09 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
+
+```{r, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
+p <- hyp_pageVisitTimes %>%
+  mutate(timeSpent = as.numeric(difftime(leavePage, visitPage, units = "mins")))  %>% # secs, mins, hours
+  keep_where(timeSpent <= quantile(timeSpent, 0.95)) %>%
+  ggplot(data = ., aes(x = timeSpent)) +
+  geom_histogram() + # aes(y = ..density..)
+  scale_fill_discrete(name = "Type of user") +
+  scale_y_continuous(breaks = NULL) +
+  ggtitle("Time spent (in minutes) by test schema users on depth 1 pages\n(sans top 5%)") +
+  theme_fivethirtyeight()
+  # scale_x_log10(name = "Seconds") +
+  # annotation_logticks(side = "b")
+(p)
+```
+
+```{r, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
+p + scale_x_continuous(limits = c(0, 4), breaks = seq(0, 4, length.out = 25), labels = seq(0, 4*60, 10)) +
+  ggtitle("Time spent (in seconds) by test schema users on depth 1 pages\n(cropped to 4 minutes maximum)") +
+  geom_vline(xintercept = 1:4, linetype = "longdash")
+```
+
+When we look at the quantiles:
+
+```{r, fig.width = 10, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE}
+hyp_pageVisitTimes %>%
+  mutate(timeSpent = as.numeric(difftime(leavePage, visitPage, units = "secs"))) %>%
+  with({
+    x <- quantile(timeSpent, seq(0, 0.95, 0.05))
+    y <- as.numeric(sub("%", "", names(x)))/100
+    data.frame(cutoff = x, quantile = y)
+  }) %>%
+  ggplot(data = ., aes(x = cutoff, y = quantile)) +
+  # geom_point() +
+  geom_line() +
+  theme_fivethirtyeight() +
+  geom_text(aes(label = cutoff), position = position_dodge(height = 0.9)) +
+  scale_y_reverse(breaks = seq(0, 1, 0.05), labels = scales::percent) +
+  scale_x_continuous(limits = c(0, 220), breaks = seq(0, 220, 10)) +
+  ggtitle("Cut-off time for check-ins (in seconds) vs quantile")
+```
+
+For example, if we were to set a check-in at 10s, we would have lost 25% of the users.
+
+We may be able to find out some intelligent way of saying "okay, given that this user with these particular characteristics has been on the page for 20s, what's the probability they're going to be on the page for 30?" and if that probability is low on average, then we don't need to have a check-in at 30s because that's not as useful to us as we originally would have thought.
+
+#### Survival Analysis...
+
+```{r, eval = FALSE}
+survival::Surv()
+survival::survfit()
+```
