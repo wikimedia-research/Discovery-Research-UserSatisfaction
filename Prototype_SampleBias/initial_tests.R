@@ -1,4 +1,4 @@
-source("config.R")
+source("../config.R")
 
 # Checks for biases against known existing data.
 check_biases <- function(){

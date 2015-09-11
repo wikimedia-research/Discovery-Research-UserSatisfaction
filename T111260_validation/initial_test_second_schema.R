@@ -1,4 +1,4 @@
-source("config.R")
+source("../config.R")
 
 check_biases <- function(){
 

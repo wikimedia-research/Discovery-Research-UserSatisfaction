@@ -16,8 +16,9 @@ output:
 
 This notebook uses the following packages: magrittr, tidyr, dplyr, knitr, ggplot2, ggthemes, scales, and printr.
 
-```{r, echo = FALSE, warning = FALSE, message = FALSE}
-c("magrittr", "tidyr", "knitr", "ggplot2", "ggthemes", "printr") %>%
+```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
+library(magrittr)
+c("tidyr", "knitr", "ggplot2", "ggthemes", "printr") %>%
   sapply(library, character.only = TRUE) %>% invisible
 import::from(dplyr, select, arrange, desc,
                     tbl_df, rename, mutate,
@@ -29,8 +30,8 @@ import::from(dplyr, select, arrange, desc,
 
 Oliver Keyes prepared the data for analysis (read it in, cleaned up timestamps, and parsed user agents).
 
-```{r, echo = FALSE, eval = FALSE}
-setwd('analysis_T105355')
+```{r data_prep, echo = FALSE, eval = FALSE}
+setwd('T105355_validation')
 load('second_ab_run.RData')
 ls()
 control_agents %<>% tbl_df
@@ -51,7 +52,7 @@ control_data$timestamp <- as.POSIXct(control_data$timestamp)
 save.image('second_ab_run_tbl-df.RData')
 ```
 
-```{r}
+```{r load_prepd_data}
 # setwd('analysis_T105355')
 load('second_ab_run_tbl-df.RData')
 ```
@@ -107,7 +108,7 @@ load('second_ab_run_tbl-df.RData')
 
 ## Bias Checking
 
-```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+```{r bias_check, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 final_set <- rbind(hyp_agents[hyp_agents$agent %in% control_agents$agent[1:10],],
                    control_agents[1:10,],
                    data.frame(agent = control_agents$agent[1:10][!control_agents$agent[1:10] %in% hyp_agents$agent],
@@ -135,7 +136,7 @@ rm(final_set)
 
 Let's take a look at proportions of (known) spiders in our datasets...
 
-```{r, echo = FALSE, results = 'asis'}
+```{r spiders, echo = FALSE, results = 'asis'}
 cbind(Controls = sprintf("%.3f%%",
                          100*sum(control_data$device == "Spider")/nrow(control_data)),
       Hypothesis = sprintf("%.3f%%",
@@ -143,7 +144,7 @@ cbind(Controls = sprintf("%.3f%%",
   kable
 ```
 
-```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+```{r ua_parsing, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 #Parse agents and identify mobile/desktop/common patterns
 handle_uas <- function(dataset, name){
   #Deduplicate
@@ -184,7 +185,7 @@ control_agents_nonauto <- control_data %>%
   handle_uas("Control Sample")
 ```
 
-```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+```{r browser_usage, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 browsers <- bind_rows(control_agents_nonauto$browser, hyp_agents_nonauto$browser)
 browsers %>%
   group_by(agent) %>%
@@ -210,7 +211,7 @@ browsers %>%
 rm(browsers)
 ```
 
-```{r, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+```{r os_usage, fig.width = 9, fig.height = 8, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 oses <- bind_rows(control_agents_nonauto$os, hyp_agents_nonauto$os)
 oses %>%
   group_by(os) %>%
@@ -236,7 +237,7 @@ oses %>%
 rm(oses)
 ```
 
-```{r, fig.width = 10, fig.height = 10, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+```{r top_browsers_systems, fig.width = 10, fig.height = 10, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 both <- bind_rows(control_agents_nonauto$both, hyp_agents_nonauto$both) %>%
   separate(os_agent, c("os", "agent"),sep = " : ", remove = FALSE)
 
@@ -279,7 +280,7 @@ both %>%
 
 ## Analysis
 
-```{r, echo = FALSE}
+```{r page_visits, echo = FALSE}
 hyp_data %>%
   keep_where(event_action == "visitPage" & event_depth == 1) %>% # they visited one of the search results
   with(., {
@@ -292,7 +293,7 @@ hyp_data %>%
           ylim = c(0, 1.5e3), col = "cornflowerblue", border = "white")
 ```
 
-```{r, echo = FALSE, eval = FALSE}
+```{r page_visits_2, echo = FALSE, eval = FALSE}
 hyp_data %>%
   keep_where(event_action == "searchEngineResultPage" | (event_action == "visitPage" & event_depth == 1)) %>%
   group_by(event_action) %>%
@@ -306,7 +307,7 @@ hyp_data %>%
 
 16122 visits to pages from 94751 search result pages (17.015%) under [Schema:TestSearchSatisfaction](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction)
 
-```{r, echo = FALSE, eval = FALSE}
+```{r page_visits_controls, echo = FALSE, eval = FALSE}
 control_data %>%
   keep_where(event_action == "impression-results" | event_action == "click-result" ) %>%
   group_by(event_action) %>%
@@ -320,7 +321,7 @@ control_data %>%
 
 20682 visits to pages from 224976 search result pages (9.193%) under [Schema:Search](https://meta.wikimedia.org/wiki/Schema:Search)
 
-```{r, echo = FALSE, eval = FALSE}
+```{r test_proportions, echo = FALSE, eval = FALSE}
 prop.test(c(20682, 16122), n = c(224976, 94751), correct = FALSE)
 ```
 
@@ -332,7 +333,7 @@ prop.test(c(20682, 16122), n = c(224976, 94751), correct = FALSE)
 
 ### Time spent on pages
 
-```{r}
+```{r time_spent}
 hyp_pageVisitTimes <- hyp_data %>%
   keep_where((event_action == "visitPage" & event_depth == 1) | event_action == "leavePage") %>%
   arrange(event_searchSessionId) %>%
@@ -359,7 +360,7 @@ Note that some **leavePage** events may be duplicated:
 |88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:02 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
 |88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:09 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
 
-```{r, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
+```{r page_visit_times, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
 p <- hyp_pageVisitTimes %>%
   mutate(timeSpent = as.numeric(difftime(leavePage, visitPage, units = "mins")))  %>% # secs, mins, hours
   keep_where(timeSpent <= quantile(timeSpent, 0.95)) %>%
@@ -374,7 +375,7 @@ p <- hyp_pageVisitTimes %>%
 (p)
 ```
 
-```{r, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
+```{r page_visit_times_cropped, fig.width = 9, fig.height = 6, echo = FALSE, message = FALSE, warning = FALSE}
 p + scale_x_continuous(limits = c(0, 4), breaks = seq(0, 4, length.out = 25), labels = seq(0, 4*60, 10)) +
   ggtitle("Time spent (in seconds) by test schema users on depth 1 pages\n(cropped to 4 minutes maximum)") +
   geom_vline(xintercept = 1:4, linetype = "longdash")
@@ -382,7 +383,7 @@ p + scale_x_continuous(limits = c(0, 4), breaks = seq(0, 4, length.out = 25), la
 
 When we look at the quantiles:
 
-```{r, fig.width = 10, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE}
+```{r page_visit_quantile, fig.width = 10, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE}
 hyp_pageVisitTimes %>%
   mutate(timeSpent = as.numeric(difftime(leavePage, visitPage, units = "secs"))) %>%
   with({
@@ -403,10 +404,3 @@ hyp_pageVisitTimes %>%
 For example, if we were to set a check-in at 10s, we would have lost 25% of the users.
 
 We may be able to find out some intelligent way of saying "okay, given that this user with these particular characteristics has been on the page for 20s, what's the probability they're going to be on the page for 30?" and if that probability is low on average, then we don't need to have a check-in at 30s because that's not as useful to us as we originally would have thought.
-
-#### Survival Analysis...
-
-```{r, eval = FALSE}
-survival::Surv()
-survival::survfit()
-```

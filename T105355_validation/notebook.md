@@ -73,7 +73,7 @@ load('second_ab_run_tbl-df.RData')
 
 ## Bias Checking
 
-![](notebook_files/figure-html/unnamed-chunk-4-1.png) 
+![](notebook_files/figure-html/bias_check-1.png) 
 
 Let's take a look at proportions of (known) spiders in our datasets...
 
@@ -84,15 +84,15 @@ Controls   Hypothesis
 
 
 
-![](notebook_files/figure-html/unnamed-chunk-7-1.png) 
+![](notebook_files/figure-html/browser_usage-1.png) 
 
-![](notebook_files/figure-html/unnamed-chunk-8-1.png) 
+![](notebook_files/figure-html/os_usage-1.png) 
 
-![](notebook_files/figure-html/unnamed-chunk-9-1.png) 
+![](notebook_files/figure-html/top_browsers_systems-1.png) 
 
 ## Analysis
 
-![](notebook_files/figure-html/unnamed-chunk-10-1.png) 
+![](notebook_files/figure-html/page_visits-1.png) 
 
 
 
@@ -140,22 +140,14 @@ Note that some **leavePage** events may be duplicated:
 |88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:02 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
 |88a1d4a587e13d37 |leavePage    |2015-08-08 07:46:09 |Other  |Windows 8.1 |Chrome  |de5f532a31d6ee91      |
 
-![](notebook_files/figure-html/unnamed-chunk-15-1.png) 
+![](notebook_files/figure-html/page_visit_times-1.png) 
 
-![](notebook_files/figure-html/unnamed-chunk-16-1.png) 
+![](notebook_files/figure-html/page_visit_times_cropped-1.png) 
 
 When we look at the quantiles:
 
-![](notebook_files/figure-html/unnamed-chunk-17-1.png) 
+![](notebook_files/figure-html/page_visit_quantile-1.png) 
 
 For example, if we were to set a check-in at 10s, we would have lost 25% of the users.
 
 We may be able to find out some intelligent way of saying "okay, given that this user with these particular characteristics has been on the page for 20s, what's the probability they're going to be on the page for 30?" and if that probability is low on average, then we don't need to have a check-in at 30s because that's not as useful to us as we originally would have thought.
-
-#### Survival Analysis...
-
-
-```r
-survival::Surv()
-survival::survfit()
-```

@@ -1,7 +1,7 @@
-#Options
+## Options
 options(scipen = 500)
 
-#Dependencies
+## Dependencies
 # install.packages("devtools")
 library(wmf) # devtools::install_github("ironholds/wmf")
 library(ineq) # install.packages("ineq")
@@ -13,5 +13,5 @@ library(scales)
 library(reconstructr) # devtools::install_github("ironholds/reconstructr")
 library(Rcpp)
 sourceCpp("intertimes.cpp")
-#$.jStorage.set( 'searchSessionId', mw.user.generateRandomSessionId(), { TTL: 600000 })
-#de558af8fd073ecb
+# $.jStorage.set( 'searchSessionId', mw.user.generateRandomSessionId(), { TTL: 600000 })
+# de558af8fd073ecb
