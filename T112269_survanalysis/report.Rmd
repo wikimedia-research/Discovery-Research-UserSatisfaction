@@ -17,41 +17,55 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 ## Background and Methods
 
-This analysis [T112269](https://phabricator.wikimedia.org/T112269) is related to our ongoing [User Satisfaction research](https://meta.wikimedia.org/wiki/Research:Measuring_User_Search_Satisfaction). In July 2015 we began experimenting with [Satisfaction Schema 1.0.0](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction) which was designed to track when the user has left the page. However, we found that the strict Javascript requirements of 2version 1.0 of the schema biased our sample towards certain browsers.
+This analysis [T112269](https://phabricator.wikimedia.org/T112269) is related to our ongoing [User Satisfaction research](https://meta.wikimedia.org/wiki/Research:Measuring_User_Search_Satisfaction). In July 2015 we began experimenting with [Satisfaction Schema 1.0.0](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction) which was designed to track when the user has left the page (via "on close" trigger). However, we found that the strict JavaScript requirements of version 1.0 of the schema biased our sample towards certain browsers, as shown in Fig. 1.
 
-![Sample validation from the initial schema showed browser bias.](../T105355_validation/notebook_files/figure-html/bias_check-1.png)
+![**Figure 1.** Sample validation from the initial schema showed browser bias.](../T105355_validation/notebook_files/figure-html/bias_check-1.png)
 
-[Satisfaction Schema 2.0.0](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction2)
+Thus, we took a pinging approach in the design of [Satisfaction Schema 2.0.0](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction2). The client would check-in at a regular interval and then later we would use statistical methodology for dealing with right-censored data.
 
 ## Results
 
+We logged nearly 300,000 events from 10,211 sessions across approximately 5,494 users. A [bug (introduced on September 10th, 2015) in the Event Logging (EL) system](https://lists.wikimedia.org/pipermail/analytics/2015-September/004285.html) prevents us from accurately linking multiple sessions to a same user, so the current number is a rough approximation.
+
 ### Sampling Bias Check
 
-![User agent sampling bias check shows that we have managed to capture a representative sample of the population that is not biased towards modern browsers.](../T111260_validation/figures/second_ua_data.png)
+Unlike the first (restrictive) version, the revision managed to capture a representative sample of the population that is not biased towards modern browsers, as shown in Fig. 2.
+
+![**Figure 2.** User agents of the test group resemble those of the controls.](../T111260_validation/figures/second_ua_data.png)
 
 ### Survival Analysis
 
 When a user closes the page and the last ping we have from them is 40s, then we know that they were on the page between 40 and 50 seconds. This is where survival analysis comes in. In statistics, *right censoring* occurs when a data point is above a certain value but it is unknown by how much. In our dataset, the last check-in is that value.
 
-![Survival.](figures/survival.png)
+*Survival analysis* is concerned with time to event. In epidemiology, that event is usually death, but for us the event is closing the page. Therefore what is technically referred to as *survival*, we refer to as *time spent on page* (TSOP).
 
-![Survival by operating system.](figures/survival_os.png)
+![**Figure 3.** Kaplan-Meier curve of time spent on page.](figures/survival.png)
 
-![Survival by operating system.](figures/survival_os2.png)
+*Kaplan-Meier* (K-M) estimate is one of the best options to be used to measure the fraction of subjects (users) without an event (closing the page) for a certain amount of time. K-M estimates enable us to see the percentage of people we lose with each additional second. In Fig. 3, the first quarter of users closed the page within the first 25 seconds, and after a minute, we have lost 50% of our users.
 
-![Survival by OS after lumping Windows versions.](figures/survival_os.png)
+#### Stratification
 
-![Survival by browser.](figures/survival_browser.png)
+Next, we wanted to see whether were differences in the time spent on page (TSOP) Kaplan-Meier (KM) curves when stratifying by various user agents fields such as operating system (OS) and browser, and stratifying by project and language. In general, the users in our test dataset behaved very similarly.
 
-![Survival by language.](figures/survival_lang.png)
+![**Figure 4.** TSOP by OS. A greater fraction of Linux users kept the pages open for at least 420s than users on any other OS.](figures/survival_os.png)
 
-![Survival by project.](figures/survival_proj.png)
+![**Figure 5.** TSOP by OS after lumping Windows versions. In fact, when we combined the fragmented Windows sub-populations into a single Windows group, we saw that Linux and Ubuntu, specifically, retained a greater fraction of users past 400s. Unsurprisingly, Android and iOS were the two OSes (with the exception of the catch-all "Other" category) where we lost users the fastest.](figures/survival_os2.png)
 
-![Survival by wiki.](figures/survival_wiki.png)
+![**Figure 6.** TSOP by browser. In general, users across the various browsers behaved similarly. The big exception is Safari users (the pink curve), who we lose the fastest.](figures/survival_browser.png)
+
+![**Figure 7.** TSOP by language. Users remained on German and Russian wiki pages longer than on wikis in other languages.](figures/survival_lang.png)
+
+![**Figure 8.** TSOP by project. When we stratified by project, that was where we started seeing really stark differences between page visit times. For one, we lost users the fastest on Commons (red), whih makes sense because those pages are not articles that we would expect users to spend several minutes viewing. By 40s, we have already lost half those users. Users viewing Wikiquote (blue) pages, however, stayed on those pages longer than users on others, and it was only by 120s that we have lost half those users. ](figures/survival_proj.png)
+
+![**Figure 9.** TSOP by wiki. The trends noticed in Figs. 7 and 8 are also evident in this plot. Users of Russian and German Wikipedias stayed on those pages longer, while Spanish and English Wikipedias (along with other wikis) had very similar K-M curves.](figures/survival_wiki.png)
 
 ## Conclusion
 
+We have a valid (user agent unbiased) schema for tracking sessions and valid statistical methodology (survival analysis) for dealing with the data it generates. Already we can use it to see how user behavior differs between the different wikis, and somewhat between the different languages.
+
 ## Discussion
+
+Having said that, we think the schema can be improved to include additional information that would make future analyses more robust and would enable more questions to be answered.
 
 ### Proposed additions for v2.1.0
 

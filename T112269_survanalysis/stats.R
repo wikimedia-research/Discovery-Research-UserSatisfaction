@@ -1,5 +1,8 @@
 # load("T112269_survanalysis/Processed.RData")
 
+library(magrittr)
+library(dplyr)
+
 library(ggplot2)
 library(ggfortify) # devtools::install_github('sinhrks/ggfortify')
 library(ggthemes) # install.packages('ggthemes', dependencies = TRUE)
