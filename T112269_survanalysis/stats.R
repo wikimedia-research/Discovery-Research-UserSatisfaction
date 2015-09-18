@@ -94,6 +94,18 @@ rm(top_os, top_browser, top_project, top_language, top_wiki)
 
 library(survival)
 
+theme_enlarge <- function(x = 1.25) {
+  theme(plot.title = element_text(size = rel(x)),
+        axis.title = element_text(size = rel(x)),
+        axis.text = element_text(size = rel(x)),
+        legend.title =  element_text(size = rel(x)),
+        legend.text = element_text(size = rel(x)))
+}
+# theme_transparent_bg <- function() {
+#   theme(panel.background = element_blank(), plot.background = element_blank())
+# }
+
+
 # Right censoring – a data point is above a certain value but it is unknown by how much.
 fit <- survfit(Surv(median_page_visits$`median page visit time`, median_page_visits$status, type = "right") ~ 1)
 ggsave(plot =
@@ -106,6 +118,7 @@ ggsave(plot =
          scale_x_continuous(name = "Time (s) spent on page (median across users & sessions)",
                             breaks = scales::pretty_breaks(10)) +
          geom_vline(x = 60, linetype = "dashed") +
+         theme_enlarge() +
          geom_text(x = 65, y = 1.0, label = "50% at 60s", hjust = 0, family = "Times", fontface = "italic"),
        filename = "T112269_survanalysis/figures/survival.png", width = 10, height = 6)
 
@@ -116,33 +129,37 @@ fit <- survfit(surv ~ os, data = median_page_visits)
 ggsave(plot =
          autoplot(fit, ylab = "% of users still on the page", surv.size = 1, conf.int = FALSE) +
          wmf::theme_fivethirtynine() +
+         theme_enlarge() +
          scale_x_continuous(name = "Time (s) spent on page (median across users & sessions)",
                             breaks = scales::pretty_breaks(10)),
-       filename = "T112269_survanalysis/figures/survival_os.png", width = 16, height = 6)
+       filename = "T112269_survanalysis/figures/survival_os.png", width = 17, height = 7)
 
 # Survival by operating system (not distinguishing by Windows version)
 fit <- survfit(surv ~ os_major, data = median_page_visits)
 ggsave(plot =
          autoplot(fit, ylab = "% of users still on the page", surv.size = 1, conf.int = FALSE) +
          wmf::theme_fivethirtynine() +
+         theme_enlarge() +
          scale_x_continuous(name = "Time (s) spent on page (median across users & sessions)",
                             breaks = scales::pretty_breaks(10)),
-       filename = "T112269_survanalysis/figures/survival_os2.png", width = 14, height = 6)
+       filename = "T112269_survanalysis/figures/survival_os2.png", width = 16, height = 6)
 
 # Survival by browser:
 fit <- survfit(surv ~ browser, data = median_page_visits)
 ggsave(plot =
          autoplot(fit, ylab = "% of users still on the page", surv.size = 1, conf.int = FALSE) +
          wmf::theme_fivethirtynine() +
+         theme_enlarge(1.5) +
          scale_x_continuous(name = "Time (s) spent on page (median across users & sessions)",
                             breaks = scales::pretty_breaks(10)),
-       filename = "T112269_survanalysis/figures/survival_browser.png", width = 12, height = 6)
+       filename = "T112269_survanalysis/figures/survival_browser.png", width = 14, height = 6)
 
 # Survival by language:
 fit <- survfit(surv ~ language, data = median_page_visits)
 ggsave(plot =
          autoplot(fit, ylab = "% of users still on the page", surv.size = 1, conf.int = FALSE) +
          wmf::theme_fivethirtynine() +
+         theme_enlarge(1.5) +
          scale_x_continuous(name = "Time (s) spent on page (median across users & sessions)",
                             breaks = scales::pretty_breaks(10)),
        filename = "T112269_survanalysis/figures/survival_lang.png", width = 16, height = 6)
@@ -152,6 +169,7 @@ fit <- survfit(surv ~ project, data = median_page_visits)
 ggsave(plot =
          autoplot(fit, ylab = "% of users still on the page", surv.size = 1, conf.int = FALSE) +
          wmf::theme_fivethirtynine() +
+         theme_enlarge(1.5) +
          scale_x_continuous(name = "Time (s) spent on page (median across users & sessions)",
                             breaks = scales::pretty_breaks(10)),
        filename = "T112269_survanalysis/figures/survival_proj.png", width = 16, height = 6)
@@ -161,6 +179,7 @@ fit <- survfit(surv ~ wiki, data = median_page_visits)
 ggsave(plot =
          autoplot(fit, ylab = "% of users still on the page", surv.size = 1, conf.int = FALSE) +
          wmf::theme_fivethirtynine() +
+         theme_enlarge(1.35) +
          scale_x_continuous(name = "Time (s) spent on page (median across users & sessions)",
                             breaks = scales::pretty_breaks(10)),
        filename = "T112269_survanalysis/figures/survival_wiki.png", width = 16, height = 6)

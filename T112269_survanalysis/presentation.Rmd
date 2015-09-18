@@ -1,0 +1,105 @@
+---
+title: 'User satisfaction: page visit times'
+author: "Analysis Team"
+date: "September 18, 2015"
+output:
+  beamer_presentation:
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+rmarkdown::pandoc_latex_engine_args("xelatex")
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+# Uses Metropolis beamer theme: https://github.com/matze/mtheme
+# Depends on Fire Sans font to be installed
+#   See: https://github.com/matze/mtheme/blob/master/getFiraFont.sh
+```
+
+## Initial schema
+
+\center
+
+![](../T105355_validation/notebook_files/figure-html/bias_check-1.png)
+
+Strict JavaScript requirements in __[v1](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction)__ biased sampling.
+
+## Revised schema
+
+![](../T111260_validation/figures/second_ua_data.png)
+
+Logged nearly 300,000 events from 10,211 sessions with __[v2](https://meta.wikimedia.org/wiki/Schema:TestSearchSatisfaction2)__.
+
+## Results
+
+![Kaplan-Meier curve of time spent on page.](figures/survival.png)
+
+The first quarter of users closed the page within the first 25s, and after a minute, we have lost 1/2 of our users.
+
+----
+
+![Fraction of users remaining as a function of time spent on page, statified by OS.](figures/survival_os.png)
+
+A greater fraction of Linux users kept the pages open for at least 420s than users on any other OS.
+
+----
+
+![Fraction of users remaining as a function of time spent on page, statified by OS after lumping Windows versions.](figures/survival_os2.png)
+
+Combined the fragmented Windows sub-populations into a single Windows group.
+
+* Retained a greater fraction of Linux and Ubuntu users past 400s.
+* Lost Android and iOS users faster than on other platforms.
+
+----
+
+![Fraction of users remaining as a function of time spent on page, statified by browser.](figures/survival_browser.png)
+
+* Users across the various browsers behaved similarly.
+* The big exception is Safari users (pink), who we lose the fastest.
+
+----
+
+![Fraction of users remaining as a function of time spent on page, statified by language.](figures/survival_lang.png)
+
+Users remained on German and Russian wiki pages longer than on wikis in other languages.
+
+----
+
+![Fraction of users remaining as a function of time spent on page, statified by project.](figures/survival_proj.png)
+
+* Lost users the fastest on Commons (red). By 40s, we have already lost half those users.
+* Users viewing Wikiquote (blue) pages stayed on those pages longer than users on others. Didn't lose half users until 120s!
+
+----
+
+![Fraction of users remaining as a function of time spent on page, statified by wiki.](figures/survival_wiki.png)
+
+* Users of Russian and German Wikipedias stayed on those pages longer.
+* Spanish and English Wikipedias (along with other wikis) very similar.
+
+## Discussion
+
+Already a valid schema that yields useful data.
+
+Proposed improvements:
+
+  * Log scroll events
+    * Ping server if user has scrolled in the last 30-60s.
+    * Can be used later to make check-ins more robust.
+  * Record additional data for events already in schema:
+    1. Number of results returned to user.
+    2. Ranking of visited page as it was on SERP.
+
+## Thank you!
+
+### Further reading
+
+* __[Research:Measuring User Search Satisfaction](https://meta.wikimedia.org/wiki/Research:Measuring_User_Search_Satisfaction)__ on Meta
+* __[Survival analysis](https://en.wikipedia.org/wiki/Survival_analysis)__ on Wikipedia
+* __[Kaplan-Meier estimator](https://en.wikipedia.org/wiki/Kaplan%E2%80%93Meier_estimator)__ on Wikipedia
+
+### Open source
+
+* __[This analysis](https://github.com/wikimedia-research/UserSatisfaction/tree/master/T112269_survanalysis)__ on GitHub
+* __[Satisfaction research codebase](https://github.com/wikimedia-research/UserSatisfaction)__ on GitHub
