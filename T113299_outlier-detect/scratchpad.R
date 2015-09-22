@@ -9,11 +9,13 @@ library(ggfortify) # devtools::install_github('sinhrks/ggfortify')
 library(scales)
 
 top_seshs <- sessions %>%
+  keep_where(event_action == "visitPage") %>%
   group_by(event_searchSessionId) %>%
   summarize(n = n()) %>%
   dplyr::top_n(20, n) # %>% select(event_searchSessionId) %>% unlist %>% unname
 
 top_seshs_2 <- sessions %>%
+  keep_where(event_action == "visitPage") %>%
   keep_where(!is.na(last_checkin)) %>%
   group_by(event_searchSessionId) %>%
   summarize(n = n()) %>%
@@ -48,6 +50,9 @@ p2 <- sessions %>%
 library(gridExtra)
 # ggsave <- ggplot2::ggsave; body(ggsave) <- body(ggplot2::ggsave)[-2]
 
+ggsave("T113299_outlier-detect/top20seshs_1.png", p1, width = 12, height = 4)
+ggsave("T113299_outlier-detect/top20seshs_2.png", p2, width = 12, height = 4)
+
 p <- gridExtra::arrangeGrob(p1, p2, nrow = 1)
 ggsave("T113299_outlier-detect/top20seshs.png", p, width = 21, height = 7)
 rm(p, p1, p2, top_seshs, top_seshs_2)
@@ -73,3 +78,19 @@ ggsave("T113299_outlier-detect/rand40seshs.png",
          ggtitle("Times for a random sample of 40 sessions") +
          # ggtitle("Times for a random sample of 40 sessions with ≥10s page visits") +
          wmf::theme_fivethirtynine(), width = 15, height = 5)
+
+library(knitr)
+
+ggsave("T113299_outlier-detect/sessions.png", sessions %>%
+         keep_where(event_action == "visitPage") %>%
+         group_by(event_searchSessionId) %>%
+         summarize(`number of page visits` = n()) %>%
+         group_by(`number of page visits`) %>%
+         summarize(`number of sessions with this many page visits` = n()) %>%
+         keep_where(`number of page visits` <= 10) %>%
+         ggplot(data = ., aes(x = `number of page visits`,
+                              y = `number of sessions with this many page visits`)) +
+         geom_bar(stat = "identity") +
+         scale_x_discrete() +
+         ggtitle("Page visits in sessions\n(excluding sessions with more than 10 visited pages)") +
+         wmf::theme_fivethirtynine(), width = 12, height = 6)
