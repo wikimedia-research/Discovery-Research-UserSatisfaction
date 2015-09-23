@@ -1,4 +1,7 @@
-events <- readr::read_csv("T112269_survanalysis/example/data.csv")
+## Minimum Working Example
+
+# setwd("T112269_survanalysis/example")
+events <- readr::read_csv("data.csv")
 #> head(events)
 #   median page visit time next check-in status       date
 # 1                    240           300      3 2015-09-04
